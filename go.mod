@@ -1,4 +1,4 @@
-module github.com/Li-jiejie/go-reload
+module github.com/Li-giegie/go-reload
 
 go 1.19
 
