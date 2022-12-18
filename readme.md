@@ -5,7 +5,7 @@
     （2）.快速 基于go语言 性能无需多言
 
 ### 使用方式：
-    (1) git clone github.com/Li-giegie/go-reload
+    (1) git clone https://github.com/Li-giegie/go-reload.git
     
     (2) 构建可执行程序 go build
 

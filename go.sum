@@ -1,5 +1,7 @@
 github.com/dablelv/go-huge-util v0.0.26 h1:uqAeUgpwz+4lAw5KDkPWtDZljEHAtpQsJ5YiBqErvWA=
 github.com/dablelv/go-huge-util v0.0.26/go.mod h1:M8jj8LsowwtdhJtakRnrSCpZDmvn0qQ3nJ7WIRDM1ZU=
+github.com/dablelv/go-huge-util v0.0.27 h1:shaRWzAVTYahUPVYVnl/eJYrMSlmbj573KC7sXbElW8=
+github.com/dablelv/go-huge-util v0.0.27/go.mod h1:M8jj8LsowwtdhJtakRnrSCpZDmvn0qQ3nJ7WIRDM1ZU=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/stretchr/testify v1.7.0 h1:nwc3DEeHmmLAfoZucVR881uASk0Mfjw8xYJ99tb5CcY=
