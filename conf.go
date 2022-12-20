@@ -10,7 +10,7 @@ import (
 	"strings"
 )
 
-type Conf struct {
+type _Conf struct {
 	fileName string
 	Cmds []string	`yaml:"cmds"`
 	Dir []string	`yaml:"dirs"`
@@ -20,13 +20,13 @@ type Conf struct {
 	Debug bool	`yaml:"debug"`
 }
 
-func NewConf(path ...string) (*Conf,error) {
+func newConf(path ...string) (*_Conf,error) {
 	if path == nil { path = []string{"./conf.yaml"} }
 	buf,err := os.ReadFile(path[0])
 	if err != nil {
 		log.Println("read conf error :open ./conf.yaml: The system cannot find the file specified.")
 	}
-	var conf Conf
+	var conf _Conf
 	err = yaml.Unmarshal(buf,&conf)
 	if err != nil {
 		return nil,err

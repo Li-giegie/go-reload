@@ -19,7 +19,7 @@ import (
 )
 
 type reload struct {
-	conf *Conf
+	conf *_Conf
 	cacheFileInfo sync.Map
 }
 
@@ -27,7 +27,7 @@ type reload struct {
 func New(confPath ...string)  *reload {
 	var err error
 	var _reload reload
-	_reload.conf,err = NewConf(confPath...)
+	_reload.conf,err = newConf(confPath...)
 
 	if err != nil {
 		log.Fatalln("read conf error :" + err.Error())
@@ -180,7 +180,7 @@ func (r *reload) compare() (bool,[]string,error)  {
 				if strings.TrimLeft(path.Base(filepath) ,`\`) == strings.TrimLeft(path.Base(r.conf.fileName),`\`) {
 					log.Println("conf 文件已更改")
 					fn := r.conf.fileName
-					r.conf ,err = NewConf(fn)
+					r.conf ,err = newConf(fn)
 					if err != nil {
 						log.Fatalln(fn," :配置文件修改格式存在错误 程序已停止运行：",err)
 					}
@@ -293,7 +293,7 @@ func filesFilter(filePaths []string,rules []string) []string {
 
 func createConf(newConf *string)  {
 	if *newConf != "" {
-		buf,err := yaml.Marshal(&Conf{
+		buf,err := yaml.Marshal(&_Conf{
 			Cmds:           []string{"go build"},
 			Dir:            []string{"./"},
 			TimeOut:        3000,
