@@ -1,4 +1,4 @@
-package go_reload
+package main
 
 import (
 	"bytes"
