@@ -54,13 +54,8 @@ func main(){
 	filePath := flag.String("config","./conf.yaml","配置文件路径")
 	val := flag.String("newconf","","生成配置文件路径")
 	flag.Parse()
+
 	createConf(val)
-
-	if filePath == nil {
-		tem := "./conf.yaml"
-		filePath = &tem
-	}
-
 	l := New(*filePath)
 	l.Run()
 
