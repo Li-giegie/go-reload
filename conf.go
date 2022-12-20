@@ -11,6 +11,7 @@ import (
 )
 
 type Conf struct {
+	fileName string
 	Cmds []string	`yaml:"cmds"`
 	Dir []string	`yaml:"dirs"`
 	TimeOut int		`yaml:"timeOut"`
@@ -47,6 +48,7 @@ func NewConf(path ...string) (*Conf,error) {
 
 		conf.GoPackageName = strings.TrimLeft(name," ")
 	}
+	conf.fileName = path[0]
 	return &conf,nil
 }
 

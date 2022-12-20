@@ -18,107 +18,108 @@ import (
 	"time"
 )
 
-var cacheFileInfo sync.Map
-var conf *Conf
+type reload struct {
+	conf *Conf
+	cacheFileInfo sync.Map
+}
+
+//
+func New(confPath ...string)  *reload {
+	var err error
+	var _reload reload
+	_reload.conf,err = NewConf(confPath...)
+
+	if err != nil {
+		log.Fatalln("read conf error :" + err.Error())
+	}
+	files,err := getFilePaths(_reload.conf.Dir,_reload.conf.FilterFileType)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	for _, s := range files {
+
+		_reload.cacheFileInfo.Store(s,getHash(s))
+	}
+
+	log.Printf(
+		`reload dir: %v	reload timeOut:%v ms	go package name:%v	execute cmd:%v	filterFileType:%v	debug:%v`,
+		_reload.conf.Dir,_reload.conf.TimeOut,_reload.conf.GoPackageName,_reload.conf.Cmds,_reload.conf.FilterFileType,_reload.conf.Debug)
+
+	return &_reload
+
+}
 
 func main(){
 	filePath := flag.String("config","./conf.yaml","配置文件路径")
-	newConf := flag.String("newconf","","生成配置文件路径")
+	val := flag.String("newconf","","生成配置文件路径")
 	flag.Parse()
+	createConf(val)
 
 	if filePath == nil {
 		tem := "./conf.yaml"
 		filePath = &tem
 	}
 
-	if *newConf != "" {
-		buf,err := yaml.Marshal(&Conf{
-			Cmds:           []string{"go build"},
-			Dir:            []string{"./"},
-			TimeOut:        3000,
-			GoPackageName:  "auto",
-			FilterFileType: []string{"*"},
-			Debug:          true,
-		})
-		if err != nil { log.Fatalln("yaml Marshal err:" ,err) }
-		err = os.WriteFile(*newConf,buf,0666)
-		if err != nil {
-			log.Fatalln("write config file err:",err)
-		}
-		return
-	}
-	Load(*filePath)
-	Run()
-
+	l := New(*filePath)
+	l.Run()
 
 }
 
-func Load(confPath ...string)  {
-	var err error
-
-	conf,err = NewConf(confPath...)
-
-	if err != nil {
-		log.Fatalln("read conf error :" + err.Error())
-	}
-	files,err := getFilePaths(conf.Dir,conf.FilterFileType)
-	if err != nil {
-		log.Fatalln(err)
-	}
-	for _, s := range files {
-		if s[len(s)-3:] == "exe" {
-			continue
-		}
-		setStore(s, gethash(s))
-	}
-
-	log.Printf(
-		`reload dir: %v	reload timeOut:%v ms	go package name:%v	execute cmd:%v	filterFileType:%v	debug:%v`,
-		conf.Dir,conf.TimeOut,conf.GoPackageName,conf.Cmds,conf.FilterFileType,conf.Debug)
-}
-
-func Run()  {
+func (r *reload) Run(changeFiles ...func(cf []string))  {
 
 	for  {
-		if ok,err := compare();!ok{
+		ok,_changeFiles,err := r.compare();
+		if !ok{
 			if err != nil {
 				panic(any(err))
 			}
-			time.Sleep(time.Millisecond*time.Duration(conf.TimeOut))
+			time.Sleep(time.Millisecond*time.Duration(r.conf.TimeOut))
 			continue
 		}
-		isRun := false
-		for _, cmd := range conf.Cmds {
+
+		if changeFiles != nil {
+			changeFiles[0](_changeFiles)
+		}
+
+		if r.conf.Debug {
+			log.Println("编辑的文件：",_changeFiles)
+		}
+
+		var isRun bool
+		for _, cmd := range r.conf.Cmds {
 			cmd = strings.TrimLeft(strings.TrimRight(cmd," ")," ")
 			switch cmd {
 			case "go generate":
-				cmd = cmd + " " + conf.GoPackageName
+				cmd = cmd + " " + r.conf.GoPackageName
 			case "go build":
-				cmd = cmd + " -pkgdir " + conf.GoPackageName +" -o " + conf.GoPackageName +".exe"
+				cmd = cmd + " -pkgdir " + r.conf.GoPackageName +" -o " + r.conf.GoPackageName +".exe"
 			case "go run":
-				cmd = cmd + " " + conf.GoPackageName
+				cmd = cmd + " " + r.conf.GoPackageName
 				isRun = true
 			default:
 				isRun = true
 			}
 
-			if conf.Debug { log.Println("execute:",cmd) }
+			if r.conf.Debug { log.Println("execute:",cmd) }
 
 			out,err := runCmd(cmd)
 			if err != nil {
 				log.Fatalln(err)
 			}
-			if conf.Debug { log.Println("execute result:",out) }else {fmt.Println(out)}
+			if out != "" {
+				if r.conf.Debug { log.Println("execute result	[\n",out,"\n]") }else {fmt.Println(out)}
+			}
 		}
 		if !isRun {
-			cmd := conf.GoPackageName +".exe"
-			if conf.Debug { log.Println("execute:",cmd) }
+			cmd := r.conf.GoPackageName +".exe"
+			if r.conf.Debug { log.Println("execute:",cmd) }
 			out,err := runCmd(cmd)
 			if err != nil {
 				log.Fatalln(err)
 			}
-			if conf.Debug {
-				log.Println("execute result:",out)
+			if r.conf.Debug {
+				log.Println("execute result	[\n",out,"\n]")
 			} else {
 				fmt.Println(out)
 			}
@@ -144,53 +145,63 @@ func runCmd(cmdStr string) (string,error){
 	return out.String(),nil
 }
 
-func compare() (bool,error)  {
+func (r *reload) compare() (bool,[]string,error)  {
 	var wait sync.WaitGroup
-
+	var _changeFiles = make([]string,0)
 	var isFresh bool
 
-	files,err := getFilePaths(conf.Dir,conf.FilterFileType)
+	files,err := getFilePaths(r.conf.Dir,r.conf.FilterFileType)
 	if err != nil {
-		return false, errors.New("Get All Files error :" + err.Error())
+		return false,nil, errors.New("Get All Files error :" + err.Error())
 	}
 
 	for _, _filePath := range files {
-		if _filePath[len(_filePath)-3:] == "exe" {
-			continue
-		}
+
 		wait.Add(1)
-		go func(path string) {
-
+		go func(filepath string) {
 			defer wait.Done()
-			if isFresh {
-				return
-			}
 
-			hax := gethash(path)
-			loadHax := getStore(path)
+			hax := getHash(filepath)
+			loadHax := r.getStore(filepath)
 			if loadHax == ""{
-				setStore(path,hax)
-				if conf.Debug { log.Println("new file:",path) }
+				r.setStore(filepath,hax)
+				if r.conf.Debug { log.Println("new file:",filepath) }
 				return
 			}
 			if loadHax != hax {
-				setStore(path, hax)
+				r.setStore(filepath, hax)
+				if path.Ext(filepath) == ".exe" || path.Base(filepath) == path.Base(r.conf.GoPackageName){
+					if r.conf.Debug {
+						log.Println("可执行文件已更新...",path.Base(filepath))
+					}
+					return
+				}
+
+				if strings.TrimLeft(path.Base(filepath) ,`\`) == strings.TrimLeft(path.Base(r.conf.fileName),`\`) {
+					log.Println("conf 文件已更改")
+					fn := r.conf.fileName
+					r.conf ,err = NewConf(fn)
+					if err != nil {
+						log.Fatalln(fn," :配置文件修改格式存在错误 程序已停止运行：",err)
+					}
+				}
+
+				_changeFiles = append(_changeFiles, filepath)
 				isFresh = true
 				return
 			}
 		}(_filePath)
 
-		if isFresh { break	}
 	}
 
 	wait.Wait()
 
-	return isFresh,nil
+	return isFresh,_changeFiles,nil
 
 }
 
-func getStore(key string) string {
-	val ,ok:= cacheFileInfo.Load(key)
+func (r *reload) getStore(key string) string {
+	val ,ok:= r.cacheFileInfo.Load(key)
 	if !ok {
 		return ""
 	}
@@ -198,14 +209,14 @@ func getStore(key string) string {
 	return val.(string)
 }
 
-func setStore(key string,val string)  {
-	if conf.Debug {
-		fmt.Println("reload file ",key,val)
+func (r *reload) setStore(key string,val string)  {
+	if r.conf.Debug {
+		fmt.Println("change file ",key,val)
 	}
-	cacheFileInfo.Store(key,val)
+	r.cacheFileInfo.Store(key,val)
 }
 
-func gethash(path string) (hash string) {
+func getHash(path string) (hash string) {
 	buf,err := os.ReadFile(path)
 	if err != nil {
 		log.Println("open file err:",path,err)
@@ -228,7 +239,9 @@ func getFilePaths(dirs []string,rules []string) ([]string,error) {
 			return nil,err
 		}
 		files = filesFilter(files,rules)
+
 		newFiles = append(newFiles, files...)
+
 	}
 	return newFiles,nil
 }
@@ -276,6 +289,26 @@ func filesFilter(filePaths []string,rules []string) []string {
 	}
 
 	return tempF
+}
+
+func createConf(newConf *string)  {
+	if *newConf != "" {
+		buf,err := yaml.Marshal(&Conf{
+			Cmds:           []string{"go build"},
+			Dir:            []string{"./"},
+			TimeOut:        3000,
+			GoPackageName:  "auto",
+			FilterFileType: []string{"*"},
+			Debug:          true,
+		})
+		if err != nil { log.Fatalln("yaml Marshal err:" ,err) }
+		err = os.WriteFile(*newConf,buf,0666)
+		if err != nil {
+			log.Fatalln("write config file err:",err)
+		}
+		os.Exit(0)
+	}
+
 }
 
 
