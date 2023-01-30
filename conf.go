@@ -34,12 +34,10 @@ func newConf(path ...string) (*_Conf,error) {
 	if len(conf.Dir) == 0 {
 		conf.Dir = []string{"./"}
 	}
-	if conf.TimeOut == 0 {
+	if conf.TimeOut <= 0 {
 		conf.TimeOut = 3000
 	}
-	if len(conf.Cmds) == 0 {
-		conf.Cmds = []string{"go build"}
-	}
+
 	if conf.GoPackageName == "" || conf.GoPackageName == "auto"{
 		name ,err := getProjectName("./")
 		if err != nil {
@@ -47,6 +45,10 @@ func newConf(path ...string) (*_Conf,error) {
 		}
 
 		conf.GoPackageName = strings.TrimLeft(name," ")
+	}
+
+	if len(conf.Cmds) == 0 {
+		conf.Cmds = []string{"go build","go run "+conf.GoPackageName}
 	}
 	conf.fileName = path[0]
 	return &conf,nil

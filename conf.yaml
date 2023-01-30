@@ -1,6 +1,6 @@
 cmds: []
-dirs: []
-timeOut: 0
-goPackageName: ""
+dirs: ["../_test/"]
+timeOut: 1000
+goPackageName: "_test"
 filterFileType: []
-debug: false
+debug: true
