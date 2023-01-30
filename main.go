@@ -45,16 +45,16 @@ func main(){
 	})
 }
 
-func initFlag() (confPath string) {
-	confPath = *flag.String("config","./conf.yaml","配置文件路径")
-	newConfPath := *flag.String("newconf","","生成配置文件路径")
+func initFlag()  string {
+	confPath := flag.String("config","./conf.yaml","配置文件路径")
+	newConfPath := flag.String("newconf","","生成配置文件路径")
 	flag.Parse()
-
-	if newConfPath != ""{
-		createConf(newConfPath)
+	fmt.Println("newConfPath ",newConfPath)
+	if *newConfPath != ""{
+		createConf(*newConfPath)
 		os.Exit(0)
 	}
-	return
+	return *confPath
 }
 
 func runCmd(cmdStr string) (string,error){
