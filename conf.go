@@ -48,7 +48,12 @@ func newConf(path ...string) (*_Conf,error) {
 	}
 
 	if len(conf.Cmds) == 0 {
-		conf.Cmds = []string{"go build","go run "+conf.GoPackageName}
+		conf.Cmds = []string{"go build -o " + conf.GoPackageName + ".exe",conf.GoPackageName + ".exe"}
+	}
+	for i, cmd := range conf.Cmds {
+		if strings.ReplaceAll(cmd," ","") == "gorunauto" {
+			conf.Cmds[i] = "go run " + conf.GoPackageName
+		}
 	}
 	conf.fileName = path[0]
 	return &conf,nil

@@ -49,7 +49,7 @@ func initFlag()  string {
 	confPath := flag.String("config","./conf.yaml","配置文件路径")
 	newConfPath := flag.String("newconf","","生成配置文件路径")
 	flag.Parse()
-	fmt.Println("newConfPath ",newConfPath)
+
 	if *newConfPath != ""{
 		createConf(*newConfPath)
 		os.Exit(0)
